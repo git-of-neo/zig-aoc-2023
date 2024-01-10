@@ -40,6 +40,31 @@ fn readValue(s: []const u8) !ReadValueResults {
     return .{ .value = value, .type = t };
 }
 
+pub fn processLine2(line: []const u8) !?u32 {
+    var tokens = mem.splitAny(u8, line, ":;");
+
+    // get id
+    var game = tokens.next().?;
+    _ = game;
+
+    // values
+    var minr: u32 = 0;
+    var ming: u32 = 0;
+    var minb: u32 = 0;
+    while (tokens.next()) |row| {
+        var valueit = mem.splitSequence(u8, row, ", ");
+        while (valueit.next()) |val| {
+            var r = try readValue(val);
+            switch (r.type) {
+                Type.red => minr = @max(minr, r.value),
+                Type.green => ming = @max(ming, r.value),
+                Type.blue => minb = @max(minb, r.value),
+            }
+        }
+    }
+    return minr * ming * minb;
+}
+
 pub fn processLine(line: []const u8) !?u32 {
     var tokens = mem.splitAny(u8, line, ":;");
 
@@ -79,7 +104,7 @@ pub fn main() !void {
     var it = mem.tokenizeScalar(u8, content, '\n');
     var res: u32 = 0;
     while (it.next()) |line| {
-        if (try processLine(line)) |r| {
+        if (try processLine2(line)) |r| {
             res += r;
         }
     }
@@ -89,4 +114,9 @@ pub fn main() !void {
 test "1" {
     var line: []const u8 = "Game 89: 11 red, 1 blue, 2 green; 6 blue, 5 green, 4 red; 15 red, 4 green, 5 blue; 11 red, 3 blue, 10 green; 6 blue, 13 green, 12 red";
     try expectEquals(try processLine(line), null);
+}
+
+test "2" {
+    var line = "Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green";
+    try expectEquals(try processLine2(line), 48);
 }
